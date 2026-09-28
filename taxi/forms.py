@@ -6,34 +6,34 @@ from django.core.exceptions import ValidationError
 from taxi.models import Driver, Car
 
 
-class DriversForm(UserCreationForm):
+def validate_license_number(license_number):
+    if len(license_number) != 8:
+        raise ValidationError("License number must be 8 characters long")
+    if not (license_number[:3].isalpha() and license_number[:3].isupper()):
+        raise ValidationError("First 3 characters must be uppercase letters")
+    if not license_number[3:].isdigit():
+        raise ValidationError("Last 5 characters must be digits")
+    return license_number
 
-    class Meta:
+
+class DriverCreationForm(UserCreationForm):
+    class Meta(UserCreationForm.Meta):
         model = Driver
-        fields = "__all__"
+        fields = UserCreationForm.Meta.fields + (
+            "first_name", "last_name", "license_number",
+        )
 
     def clean_license_number(self):
-        license_number = self.cleaned_data["license_number"]
-
-        if len(license_number) != 8:
-            raise ValidationError("Ensure that value is correct length!")
-
-        if not license_number[:3].isupper():
-            raise ValidationError(
-                "Ensure that value is starts with Uppercase!"
-            )
-
-        if not license_number[3:].isnumeric():
-            raise ValidationError("Ensure that value is end with digits!")
-
-        return license_number
+        return validate_license_number(self.cleaned_data["license_number"])
 
 
-class DriverLicenseForm(DriversForm):
-
+class DriverLicenseUpdateForm(forms.ModelForm):
     class Meta:
         model = Driver
-        fields = ("license_number",)
+        fields = ["license_number"]
+
+    def clean_license_number(self):
+        return validate_license_number(self.cleaned_data["license_number"])
 
 
 class CarForm(forms.ModelForm):
